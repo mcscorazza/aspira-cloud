@@ -47,7 +47,7 @@ app.post(
       const dateNow = new Date().toISOString().split("T")[0];
 
       const fileName = file.originalname || `datalogger_${Date.now()}.zip`;
-      const s3Key = `uploads/${dateNow}/${fileName}`;
+      const s3Key = `root/${dateNow}/${fileName}`;
 
       const command = new PutObjectCommand({
         Bucket: BUCKET_NAME,
@@ -79,7 +79,7 @@ app.get("/api/url-upload", async (req: Request, res: Response) => {
     const nomeArquivo = req.query.nome_arquivo as string;
     const dataHoje = new Date().toISOString().split("T")[0];
 
-    const s3Key = `uploads/${dataHoje}/${nomeArquivo}`;
+    const s3Key = `root/${dataHoje}/${nomeArquivo}`;
 
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
@@ -108,7 +108,7 @@ app.get("/api/url-download", async (req: Request, res: Response) => {
 
     const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
-      Key: `uploads/${fileName}`,
+      Key: `root/${fileName}`,
     });
 
     const presignedUrl = await getSignedUrl(s3Client, command, {
@@ -124,7 +124,7 @@ app.get("/api/url-download", async (req: Request, res: Response) => {
 
 app.get("/api/listar", async (req: Request, res: Response) => {
   try {
-    const prefixo = (req.query.prefixo as string) || "uploads/";
+    const prefixo = (req.query.prefixo as string) || "root/";
 
     const command = new ListObjectsV2Command({
       Bucket: BUCKET_NAME,
