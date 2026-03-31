@@ -80,10 +80,9 @@
     </div>
 
     <script>
-      const API_URL = "http://localhost:8000/api";
-      let prefixoAtual = "uploads/"; // Começamos na raiz
+      const API_URL = "/api";
+      let prefixoAtual = "dlg-data/";
 
-      // Função para formatar bytes (ex: 1024 -> 1 KB)
       function formatarTamanho(bytes) {
         if (bytes === 0) return "0 Bytes";
         const k = 1024;
@@ -95,7 +94,7 @@
       }
 
       // Função principal: Carregar arquivos da API
-      async function carregarArquivos(prefixo = "uploads/") {
+      async function carregarArquivos(prefixo = "dlg-data/") {
         prefixoAtual = prefixo;
         document.getElementById("breadcrumb").innerHTML =
           `<i class="fas fa-folder-open text-blue-500"></i> ${prefixoAtual}`;
@@ -110,11 +109,9 @@
           const dados = await resposta.json();
           tbody.innerHTML = "";
 
-          // Renderiza botão de VOLTAR se não estivermos na raiz
           if (prefixoAtual !== "uploads/") {
             const tr = document.createElement("tr");
             tr.className = "border-b hover:bg-gray-50 cursor-pointer";
-            // Lógica simples de voltar uma pasta
             const pastaPai =
               prefixoAtual.split("/").slice(0, -2).join("/") + "/";
             tr.onclick = () => carregarArquivos(pastaPai);
@@ -122,12 +119,11 @@
             tbody.appendChild(tr);
           }
 
-          // Renderiza as "Pastas"
           dados.pastas.forEach((pasta) => {
             const nomeExibicao = pasta.replace(prefixoAtual, "");
             const tr = document.createElement("tr");
             tr.className = "border-b hover:bg-gray-50 cursor-pointer";
-            tr.onclick = () => carregarArquivos(pasta); // Clicar na pasta recarrega a lista com o novo prefixo
+            tr.onclick = () => carregarArquivos(pasta);
             tr.innerHTML = `
                         <td class="p-4 font-medium text-blue-800"><i class="fas fa-folder text-yellow-400 mr-2 text-lg"></i> ${nomeExibicao}</td>
                         <td class="p-4 text-gray-500">-</td>
@@ -137,7 +133,6 @@
             tbody.appendChild(tr);
           });
 
-          // Renderiza os Arquivos
           dados.arquivos.forEach((arquivo) => {
             const tr = document.createElement("tr");
             tr.className = "border-b hover:bg-gray-50";
@@ -169,20 +164,18 @@
         }
       }
 
-      // Função de Download
       async function baixarArquivo(chaveCompleta) {
         try {
           const resposta = await fetch(
             `${API_URL}/url-download?nome_arquivo=${encodeURIComponent(chaveCompleta.replace("uploads/", ""))}`,
           );
           const dados = await resposta.json();
-          window.open(dados.url, "_blank"); // Abre o link de download direto do S3
+          window.open(dados.url, "_blank");
         } catch (erro) {
           alert("Erro ao gerar link de download");
         }
       }
 
-      // Função de Upload (adaptada para subir na pasta atual)
       async function fazerUpload() {
         const input = document.getElementById("arquivoInput");
         const arquivo = input.files[0];
@@ -191,7 +184,6 @@
         const caminhoCompleto = prefixoAtual + arquivo.name;
         const nomeParaUpload = caminhoCompleto.replace("uploads/", "");
 
-        // Elementos visuais
         const btnLabel = input.nextElementSibling;
         const textoOriginal = btnLabel.innerHTML;
         const containerProgresso =
@@ -200,28 +192,23 @@
         const textoProgresso = document.getElementById("textoProgresso");
 
         try {
-          // Bloqueia o botão durante o processo
           btnLabel.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i> Autorizando...`;
           btnLabel.classList.add("pointer-events-none", "opacity-50");
 
-          // 1. Pede a URL pre-assinada pro Backend
           const respostaBackend = await fetch(
             `${API_URL}/url-upload?nome_arquivo=${encodeURIComponent(nomeParaUpload)}`,
           );
           const dados = await respostaBackend.json();
 
-          // 2. Mostra a barra de progresso zerada
           containerProgresso.classList.remove("hidden");
           barraProgresso.style.width = "0%";
           textoProgresso.innerText = "0%";
           btnLabel.innerHTML = `<i class="fas fa-upload mr-1"></i> Enviando...`;
 
-          // 3. Faz o upload usando XMLHttpRequest para capturar o progresso
           const xhr = new XMLHttpRequest();
           xhr.open("PUT", dados.url, true);
           xhr.setRequestHeader("Content-Type", arquivo.type);
 
-          // Evento disparado continuamente enquanto faz o upload
           xhr.upload.onprogress = function (evento) {
             if (evento.lengthComputable) {
               const percentual = Math.round(
@@ -232,18 +219,15 @@
             }
           };
 
-          // Evento disparado quando termina
           xhr.onload = function () {
-            // Restaura o botão
             btnLabel.innerHTML = textoOriginal;
             btnLabel.classList.remove("pointer-events-none", "opacity-50");
 
             if (xhr.status === 200) {
               textoProgresso.innerText = "100% - Concluído!";
-              input.value = ""; // Limpa o input
-              carregarArquivos(prefixoAtual); // Recarrega a lista
+              input.value = "";
+              carregarArquivos(prefixoAtual);
 
-              // Esconde a barra depois de 2 segundos
               setTimeout(() => {
                 containerProgresso.classList.add("hidden");
               }, 2000);
@@ -253,7 +237,6 @@
             }
           };
 
-          // Evento disparado se a internet cair
           xhr.onerror = function () {
             alert("Erro de rede ao tentar enviar o arquivo.");
             btnLabel.innerHTML = textoOriginal;
@@ -261,7 +244,6 @@
             containerProgresso.classList.add("hidden");
           };
 
-          // Inicia o envio
           xhr.send(arquivo);
         } catch (erro) {
           console.error("Erro:", erro);
@@ -271,7 +253,6 @@
         }
       }
 
-      // Inicia carregando a raiz
       carregarArquivos();
     </script>
   </body>
