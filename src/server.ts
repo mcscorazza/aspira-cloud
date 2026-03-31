@@ -28,10 +28,6 @@ const verificarTokenESP = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-app.get("/{*splat}", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/index.html"));
-});
-
 app.post(
   "/api/upload-esp",
   verificarTokenESP,
@@ -150,6 +146,10 @@ app.get("/api/listar", async (req: Request, res: Response) => {
     console.error("Erro ao listar arquivos:", error);
     res.status(500).json({ erro: "Erro ao listar do S3" });
   }
+});
+
+app.get("/{*splat}", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/index.html"));
 });
 
 const PORT = process.env.PORT || 8000;
