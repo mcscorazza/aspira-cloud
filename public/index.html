@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aspira Cloud - Instrumentação</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body class="bg-gray-50 text-gray-800 font-sans p-8">
+    <div
+      class="max-w-5xl mx-auto bg-white rounded-xl shadow-md overflow-hidden"
+    >
+      <div class="bg-blue-600 p-6 text-white flex justify-between items-center">
+        <h1 class="text-2xl font-bold">
+          <i class="fas fa-cloud mr-2"></i> Aspira Cloud
+        </h1>
+
+        <div class="flex gap-2">
+          <input
+            type="file"
+            id="arquivoInput"
+            class="hidden"
+            onchange="fazerUpload()"
+          />
+          <label
+            for="arquivoInput"
+            class="bg-white text-blue-600 px-4 py-2 rounded font-semibold cursor-pointer hover:bg-gray-100 transition"
+          >
+            <i class="fas fa-upload mr-1"></i> Subir Arquivo
+          </label>
+        </div>
+      </div>
+
+      <div id="containerProgresso" class="hidden bg-white p-4 border-b">
+        <div
+          class="flex justify-between text-sm text-gray-600 mb-1 font-medium"
+        >
+          <span>Enviando arquivo...</span>
+          <span id="textoProgresso">0%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+          <div
+            id="barraProgresso"
+            class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+            style="width: 0%"
+          ></div>
+        </div>
+      </div>
+
+      <div
+        class="bg-gray-100 p-3 border-b text-sm text-gray-600"
+        id="breadcrumb"
+      >
+        <i class="fas fa-home"></i> / uploads /
+      </div>
+
+      <div class="p-0">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-50 border-b text-gray-500 text-sm">
+              <th class="p-4 font-medium">Nome</th>
+              <th class="p-4 font-medium">Tamanho</th>
+              <th class="p-4 font-medium">Modificado em</th>
+              <th class="p-4 font-medium text-right">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="listaArquivos">
+            <tr>
+              <td colspan="4" class="p-8 text-center text-gray-500">
+                Carregando arquivos...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:8000/api";
+      let prefixoAtual = "uploads/"; // Começamos na raiz
+
+      // Função para formatar bytes (ex: 1024 -> 1 KB)
+      function formatarTamanho(bytes) {
+        if (bytes === 0) return "0 Bytes";
+        const k = 1024;
+        const tamanhos = ["Bytes", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return (
+          parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + tamanhos[i]
+        );
+      }
+
+      // Função principal: Carregar arquivos da API
+      async function carregarArquivos(prefixo = "uploads/") {
+        prefixoAtual = prefixo;
+        document.getElementById("breadcrumb").innerHTML =
+          `<i class="fas fa-folder-open text-blue-500"></i> ${prefixoAtual}`;
+        const tbody = document.getElementById("listaArquivos");
+        tbody.innerHTML =
+          '<tr><td colspan="4" class="p-8 text-center text-gray-500"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>';
+
+        try {
+          const resposta = await fetch(
+            `${API_URL}/listar?prefixo=${encodeURIComponent(prefixo)}`,
+          );
+          const dados = await resposta.json();
+          tbody.innerHTML = "";
+
+          // Renderiza botão de VOLTAR se não estivermos na raiz
+          if (prefixoAtual !== "uploads/") {
+            const tr = document.createElement("tr");
+            tr.className = "border-b hover:bg-gray-50 cursor-pointer";
+            // Lógica simples de voltar uma pasta
+            const pastaPai =
+              prefixoAtual.split("/").slice(0, -2).join("/") + "/";
+            tr.onclick = () => carregarArquivos(pastaPai);
+            tr.innerHTML = `<td class="p-4 text-blue-600" colspan="4"><i class="fas fa-level-up-alt mr-2"></i> Voltar</td>`;
+            tbody.appendChild(tr);
+          }
+
+          // Renderiza as "Pastas"
+          dados.pastas.forEach((pasta) => {
+            const nomeExibicao = pasta.replace(prefixoAtual, "");
+            const tr = document.createElement("tr");
+            tr.className = "border-b hover:bg-gray-50 cursor-pointer";
+            tr.onclick = () => carregarArquivos(pasta); // Clicar na pasta recarrega a lista com o novo prefixo
+            tr.innerHTML = `
+                        <td class="p-4 font-medium text-blue-800"><i class="fas fa-folder text-yellow-400 mr-2 text-lg"></i> ${nomeExibicao}</td>
+                        <td class="p-4 text-gray-500">-</td>
+                        <td class="p-4 text-gray-500">-</td>
+                        <td class="p-4"></td>
+                    `;
+            tbody.appendChild(tr);
+          });
+
+          // Renderiza os Arquivos
+          dados.arquivos.forEach((arquivo) => {
+            const tr = document.createElement("tr");
+            tr.className = "border-b hover:bg-gray-50";
+            const dataFormatada = new Date(
+              arquivo.dataModificacao,
+            ).toLocaleString("pt-BR");
+
+            tr.innerHTML = `
+                        <td class="p-4 text-gray-700"><i class="fas fa-file-alt text-gray-400 mr-2 text-lg"></i> ${arquivo.nome}</td>
+                        <td class="p-4 text-gray-500 text-sm">${formatarTamanho(arquivo.tamanho)}</td>
+                        <td class="p-4 text-gray-500 text-sm">${dataFormatada}</td>
+                        <td class="p-4 text-right">
+                            <button onclick="baixarArquivo('${arquivo.chave}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded text-sm font-medium">
+                                <i class="fas fa-download"></i> Baixar
+                            </button>
+                        </td>
+                    `;
+            tbody.appendChild(tr);
+          });
+
+          if (dados.pastas.length === 0 && dados.arquivos.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="4" class="p-8 text-center text-gray-500">A pasta está vazia.</td></tr>';
+          }
+        } catch (erro) {
+          console.error("Erro:", erro);
+          tbody.innerHTML =
+            '<tr><td colspan="4" class="p-8 text-center text-red-500">Erro ao carregar arquivos.</td></tr>';
+        }
+      }
+
+      // Função de Download
+      async function baixarArquivo(chaveCompleta) {
+        try {
+          const resposta = await fetch(
+            `${API_URL}/url-download?nome_arquivo=${encodeURIComponent(chaveCompleta.replace("uploads/", ""))}`,
+          );
+          const dados = await resposta.json();
+          window.open(dados.url, "_blank"); // Abre o link de download direto do S3
+        } catch (erro) {
+          alert("Erro ao gerar link de download");
+        }
+      }
+
+      // Função de Upload (adaptada para subir na pasta atual)
+      async function fazerUpload() {
+        const input = document.getElementById("arquivoInput");
+        const arquivo = input.files[0];
+        if (!arquivo) return;
+
+        const caminhoCompleto = prefixoAtual + arquivo.name;
+        const nomeParaUpload = caminhoCompleto.replace("uploads/", "");
+
+        // Elementos visuais
+        const btnLabel = input.nextElementSibling;
+        const textoOriginal = btnLabel.innerHTML;
+        const containerProgresso =
+          document.getElementById("containerProgresso");
+        const barraProgresso = document.getElementById("barraProgresso");
+        const textoProgresso = document.getElementById("textoProgresso");
+
+        try {
+          // Bloqueia o botão durante o processo
+          btnLabel.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i> Autorizando...`;
+          btnLabel.classList.add("pointer-events-none", "opacity-50");
+
+          // 1. Pede a URL pre-assinada pro Backend
+          const respostaBackend = await fetch(
+            `${API_URL}/url-upload?nome_arquivo=${encodeURIComponent(nomeParaUpload)}`,
+          );
+          const dados = await respostaBackend.json();
+
+          // 2. Mostra a barra de progresso zerada
+          containerProgresso.classList.remove("hidden");
+          barraProgresso.style.width = "0%";
+          textoProgresso.innerText = "0%";
+          btnLabel.innerHTML = `<i class="fas fa-upload mr-1"></i> Enviando...`;
+
+          // 3. Faz o upload usando XMLHttpRequest para capturar o progresso
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", dados.url, true);
+          xhr.setRequestHeader("Content-Type", arquivo.type);
+
+          // Evento disparado continuamente enquanto faz o upload
+          xhr.upload.onprogress = function (evento) {
+            if (evento.lengthComputable) {
+              const percentual = Math.round(
+                (evento.loaded / evento.total) * 100,
+              );
+              barraProgresso.style.width = percentual + "%";
+              textoProgresso.innerText = percentual + "%";
+            }
+          };
+
+          // Evento disparado quando termina
+          xhr.onload = function () {
+            // Restaura o botão
+            btnLabel.innerHTML = textoOriginal;
+            btnLabel.classList.remove("pointer-events-none", "opacity-50");
+
+            if (xhr.status === 200) {
+              textoProgresso.innerText = "100% - Concluído!";
+              input.value = ""; // Limpa o input
+              carregarArquivos(prefixoAtual); // Recarrega a lista
+
+              // Esconde a barra depois de 2 segundos
+              setTimeout(() => {
+                containerProgresso.classList.add("hidden");
+              }, 2000);
+            } else {
+              alert("Erro ao enviar para o S3. Status: " + xhr.status);
+              containerProgresso.classList.add("hidden");
+            }
+          };
+
+          // Evento disparado se a internet cair
+          xhr.onerror = function () {
+            alert("Erro de rede ao tentar enviar o arquivo.");
+            btnLabel.innerHTML = textoOriginal;
+            btnLabel.classList.remove("pointer-events-none", "opacity-50");
+            containerProgresso.classList.add("hidden");
+          };
+
+          // Inicia o envio
+          xhr.send(arquivo);
+        } catch (erro) {
+          console.error("Erro:", erro);
+          alert("Erro ao iniciar o upload.");
+          btnLabel.innerHTML = textoOriginal;
+          btnLabel.classList.remove("pointer-events-none", "opacity-50");
+        }
+      }
+
+      // Inicia carregando a raiz
+      carregarArquivos();
+    </script>
+  </body>
+</html>
