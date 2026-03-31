@@ -55,7 +55,7 @@
         class="bg-gray-100 p-3 border-b text-sm text-gray-600"
         id="breadcrumb"
       >
-        <i class="fas fa-home"></i> / uploads /
+        <i class="fas fa-home"></i> / root /
       </div>
 
       <div class="p-0">
@@ -81,7 +81,7 @@
 
     <script>
       const API_URL = "/api";
-      let prefixoAtual = "dlg-data/";
+      let prefixoAtual = "root/";
 
       function formatarTamanho(bytes) {
         if (bytes === 0) return "0 Bytes";
@@ -94,7 +94,7 @@
       }
 
       // Função principal: Carregar arquivos da API
-      async function carregarArquivos(prefixo = "dlg-data/") {
+      async function carregarArquivos(prefixo = "root/") {
         prefixoAtual = prefixo;
         document.getElementById("breadcrumb").innerHTML =
           `<i class="fas fa-folder-open text-blue-500"></i> ${prefixoAtual}`;
@@ -109,7 +109,7 @@
           const dados = await resposta.json();
           tbody.innerHTML = "";
 
-          if (prefixoAtual !== "uploads/") {
+          if (prefixoAtual !== "root/") {
             const tr = document.createElement("tr");
             tr.className = "border-b hover:bg-gray-50 cursor-pointer";
             const pastaPai =
@@ -167,7 +167,7 @@
       async function baixarArquivo(chaveCompleta) {
         try {
           const resposta = await fetch(
-            `${API_URL}/url-download?nome_arquivo=${encodeURIComponent(chaveCompleta.replace("uploads/", ""))}`,
+            `${API_URL}/url-download?nome_arquivo=${encodeURIComponent(chaveCompleta.replace("root/", ""))}`,
           );
           const dados = await resposta.json();
           window.open(dados.url, "_blank");
@@ -182,7 +182,7 @@
         if (!arquivo) return;
 
         const caminhoCompleto = prefixoAtual + arquivo.name;
-        const nomeParaUpload = caminhoCompleto.replace("uploads/", "");
+        const nomeParaUpload = caminhoCompleto.replace("root/", "");
 
         const btnLabel = input.nextElementSibling;
         const textoOriginal = btnLabel.innerHTML;
