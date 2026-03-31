@@ -28,7 +28,7 @@ const verificarTokenESP = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-app.get("*", (req, res) => {
+app.get("/{*splat}", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/index.html"));
 });
 
