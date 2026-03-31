@@ -2,13 +2,13 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import multer from "multer";
 import path from "path";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const app = express();
 app.use(cors());
@@ -72,10 +72,9 @@ app.post(
 
 app.get("/api/url-upload", async (req: Request, res: Response) => {
   try {
-    const nomeArquivo = req.query.nome_arquivo as string;
-    const dataHoje = new Date().toISOString().split("T")[0];
+    const fileName = req.query.nome_arquivo as string;
 
-    const s3Key = `root/${dataHoje}/${nomeArquivo}`;
+    const s3Key = `root/${fileName}`;
 
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
@@ -120,11 +119,11 @@ app.get("/api/url-download", async (req: Request, res: Response) => {
 
 app.get("/api/listar", async (req: Request, res: Response) => {
   try {
-    const prefixo = (req.query.prefixo as string) || "root/";
+    const prefix = (req.query.prefixo as string) || "root/";
 
     const command = new ListObjectsV2Command({
       Bucket: BUCKET_NAME,
-      Prefix: prefixo,
+      Prefix: prefix,
       Delimiter: "/",
     });
 
@@ -132,16 +131,16 @@ app.get("/api/listar", async (req: Request, res: Response) => {
 
     const pastas = (respostaS3.CommonPrefixes || []).map((p) => p.Prefix);
 
-    const arquivos = (respostaS3.Contents || [])
-      .filter((arquivo) => arquivo.Key !== prefixo)
+    const files = (respostaS3.Contents || [])
+      .filter((arquivo) => arquivo.Key !== prefix)
       .map((arquivo) => ({
         chave: arquivo.Key,
-        nome: arquivo.Key?.replace(prefixo, ""),
+        nome: arquivo.Key?.replace(prefix, ""),
         tamanho: arquivo.Size,
         dataModificacao: arquivo.LastModified,
       }));
 
-    res.json({ pastas, arquivos, prefixoAtual: prefixo });
+    res.json({ pastas, arquivos: files, currentPrefix: prefix });
   } catch (error) {
     console.error("Erro ao listar arquivos:", error);
     res.status(500).json({ erro: "Erro ao listar do S3" });
