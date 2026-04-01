@@ -61,23 +61,20 @@
       </div>
 
       <div class="p-0 overflow-x-auto w-full">
-        <table class="w-full text-left border-collapse min-w-[600px]">
-          <thead>
-            <tr class="bg-gray-50 border-b text-gray-500 text-sm">
-              <th class="p-4 font-medium">Nome</th>
-              <th class="p-4 font-medium">Tamanho</th>
-              <th class="p-4 font-medium">Modificado em</th>
-              <th class="p-4 font-medium text-right">Ação</th>
-            </tr>
-          </thead>
-          <tbody id="listaArquivos">
-            <tr>
-              <td colspan="4" class="p-8 text-center text-gray-500">
-                Carregando arquivos...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div
+          class="hidden md:grid md:grid-cols-12 bg-gray-50 border-b text-gray-500 text-sm font-medium p-4"
+        >
+          <div class="col-span-5">Nome</div>
+          <div class="col-span-2">Tamanho</div>
+          <div class="col-span-3">Modificado em</div>
+          <div class="col-span-2 text-right">Ação</div>
+        </div>
+
+        <div id="listaArquivos" class="divide-y divide-gray-100">
+          <div class="p-8 text-center text-gray-500">
+            Carregando arquivos...
+          </div>
+        </div>
       </div>
     </div>
 
@@ -122,44 +119,51 @@
 
           dados.pastas.forEach((pasta) => {
             const nomeExibicao = pasta.replace(prefixoAtual, "");
-            const tr = document.createElement("tr");
-            tr.className = "border-b hover:bg-gray-50 cursor-pointer";
-            tr.onclick = () => carregarArquivos(pasta);
-            tr.innerHTML = `<td class="p-4 text-gray-700"><i class="fas fa-file-alt text-gray-400 mr-2 text-lg"></i> ${arquivo.nome}</td>
-                        <td class="p-4 text-gray-500 text-sm">${formatarTamanho(arquivo.tamanho)}</td>
-                        <td class="p-4 text-gray-500 text-sm">${dataFormatada}</td>
-                        <td class="p-4">
-                            <div class="flex justify-end gap-2">
-                                <button onclick="baixarArquivo('${arquivo.chave}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded text-sm font-medium transition-colors">
-                                    <i class="fas fa-download"></i> Baixar
-                                </button>
-                                <button onclick="excluirArquivo('${arquivo.chave}')" class="text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded text-sm font-medium transition-colors">
-                                    <i class="fas fa-trash-alt"></i> Excluir
-                                </button>
-                            </div>
-                        </td>
-                    `;
-            tbody.appendChild(tr);
+            const item = document.createElement("div");
+            item.className =
+              "p-4 hover:bg-gray-50 cursor-pointer flex items-center";
+            item.onclick = () => carregarArquivos(pasta);
+            item.innerHTML = `
+        <div class="flex items-center w-full font-bold text-blue-800">
+            <i class="fas fa-folder text-yellow-400 mr-3 text-2xl"></i>
+            ${nomeExibicao}
+        </div>
+    `;
+            tbody.appendChild(item);
           });
 
           dados.arquivos.forEach((arquivo) => {
-            const tr = document.createElement("tr");
-            tr.className = "border-b hover:bg-gray-50";
+            const item = document.createElement("div");
+            item.className =
+              "p-4 hover:bg-gray-50 flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-0 items-start md:items-center";
+
             const dataFormatada = new Date(
               arquivo.dataModificacao,
             ).toLocaleString("pt-BR");
 
-            tr.innerHTML = `
-                        <td class="p-4 text-gray-700"><i class="fas fa-file-alt text-gray-400 mr-2 text-lg"></i> ${arquivo.nome}</td>
-                        <td class="p-4 text-gray-500 text-sm">${formatarTamanho(arquivo.tamanho)}</td>
-                        <td class="p-4 text-gray-500 text-sm">${dataFormatada}</td>
-                        <td class="p-4 text-right">
-                            <button onclick="baixarArquivo('${arquivo.chave}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded text-sm font-medium">
-                                <i class="fas fa-download"></i> Baixar
-                            </button>
-                        </td>
-                    `;
-            tbody.appendChild(tr);
+            item.innerHTML = `
+                    <div class="md:col-span-5 flex items-center w-full">
+                        <i class="fas fa-file-alt text-gray-400 mr-3 text-xl"></i>
+                        <span class="text-gray-800 font-medium break-all">${arquivo.nome}</span>
+                    </div>
+
+                    <div class="md:col-span-2 text-sm text-gray-500">
+                        <span class="md:hidden font-semibold">Tamanho: </span>${formatarTamanho(arquivo.tamanho)}
+                    </div>
+                    <div class="md:col-span-3 text-sm text-gray-500">
+                        <span class="md:hidden font-semibold">Data: </span>${dataFormatada}
+                    </div>
+
+                    <div class="md:col-span-2 w-full flex justify-end gap-2 mt-2 md:mt-0">
+                        <button onclick="baixarArquivo('${arquivo.chave}')" class="flex-1 md:flex-none text-blue-600 hover:text-blue-800 bg-blue-50 px-4 py-2 md:py-1 rounded text-sm font-bold transition-colors text-center">
+                            <i class="fas fa-download mr-1"></i> Baixar
+                        </button>
+                        <button onclick="excluirArquivo('${arquivo.chave}')" class="flex-1 md:flex-none text-red-600 hover:text-red-800 bg-red-50 px-4 py-2 md:py-1 rounded text-sm font-bold transition-colors text-center">
+                            <i class="fas fa-trash-alt mr-1"></i> Excluir
+                        </button>
+                    </div>
+                `;
+            tbody.appendChild(item);
           });
 
           if (dados.pastas.length === 0 && dados.arquivos.length === 0) {
