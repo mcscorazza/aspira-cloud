@@ -16,7 +16,12 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, "../public")));
 
 const storage = multer.memoryStorage();
-const uploadMulter = multer({ storage: storage });
+const uploadMulter = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024,
+  },
+});
 
 const s3Client = new S3Client({ region: "sa-east-1" });
 const BUCKET_NAME = "aspira-cloud";
@@ -175,6 +180,10 @@ app.get("/{*splat}", (req, res) => {
 });
 
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
+
+const server = app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+server.requestTimeout = 300000;
+server.headersTimeout = 305000;
