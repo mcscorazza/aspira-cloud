@@ -37,18 +37,6 @@
         </div>
       </div>
 
-      <div
-        class="hidden md:grid md:grid-cols-12 bg-gray-50 border-b text-gray-500 text-sm font-medium p-4"
-      >
-        <div class="col-span-1">
-          <input type="checkbox" id="selectAll" onclick="toggleTodos(this)" />
-        </div>
-        <div class="col-span-4">Nome</div>
-        <div class="col-span-2">Tamanho</div>
-        <div class="col-span-3">Modificado em</div>
-        <div class="col-span-2 text-right">Ação</div>
-      </div>
-
       <div id="containerProgresso" class="hidden bg-white p-4 border-b">
         <div
           class="flex justify-between text-sm text-gray-600 mb-1 font-medium"
@@ -76,6 +64,9 @@
         <div
           class="hidden md:grid md:grid-cols-12 bg-gray-50 border-b text-gray-500 text-sm font-medium p-4"
         >
+          <div class="col-span-1">
+            <input type="checkbox" id="selectAll" onclick="toggleTodos(this)" />
+          </div>
           <div class="col-span-5">Nome</div>
           <div class="col-span-2">Tamanho</div>
           <div class="col-span-3">Modificado em</div>
