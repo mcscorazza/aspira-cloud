@@ -125,11 +125,19 @@
             const tr = document.createElement("tr");
             tr.className = "border-b hover:bg-gray-50 cursor-pointer";
             tr.onclick = () => carregarArquivos(pasta);
-            tr.innerHTML = `
-                        <td class="p-4 font-medium text-blue-800"><i class="fas fa-folder text-yellow-400 mr-2 text-lg"></i> ${nomeExibicao}</td>
-                        <td class="p-4 text-gray-500">-</td>
-                        <td class="p-4 text-gray-500">-</td>
-                        <td class="p-4"></td>
+            tr.innerHTML = `<td class="p-4 text-gray-700"><i class="fas fa-file-alt text-gray-400 mr-2 text-lg"></i> ${arquivo.nome}</td>
+                        <td class="p-4 text-gray-500 text-sm">${formatarTamanho(arquivo.tamanho)}</td>
+                        <td class="p-4 text-gray-500 text-sm">${dataFormatada}</td>
+                        <td class="p-4">
+                            <div class="flex justify-end gap-2">
+                                <button onclick="baixarArquivo('${arquivo.chave}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded text-sm font-medium transition-colors">
+                                    <i class="fas fa-download"></i> Baixar
+                                </button>
+                                <button onclick="excluirArquivo('${arquivo.chave}')" class="text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded text-sm font-medium transition-colors">
+                                    <i class="fas fa-trash-alt"></i> Excluir
+                                </button>
+                            </div>
+                        </td>
                     `;
             tbody.appendChild(tr);
           });
@@ -258,6 +266,35 @@
           alert("Erro ao iniciar o upload.");
           btnLabel.innerHTML = textoOriginal;
           btnLabel.classList.remove("pointer-events-none", "opacity-50");
+        }
+      }
+
+      async function excluirArquivo(chaveCompleta) {
+        const nomeArquivo = chaveCompleta.split("/").pop();
+        if (
+          !confirm(
+            `TEM CERTEZA absoluta que deseja excluir o arquivo:\n\n"${nomeArquivo}"\n\nEsta ação não pode ser desfeita.`,
+          )
+        ) {
+          return;
+        }
+
+        try {
+          const resposta = await fetch(
+            `${API_URL}/excluir?chave=${encodeURIComponent(chaveCompleta)}`,
+            {
+              method: "DELETE",
+            },
+          );
+
+          if (resposta.ok) {
+            carregarArquivos(prefixoAtual);
+          } else {
+            alert("Erro ao excluir arquivo no servidor.");
+          }
+        } catch (erro) {
+          console.error("Erro:", erro);
+          alert("Erro de conexão ao tentar excluir o arquivo.");
         }
       }
 

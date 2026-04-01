@@ -8,6 +8,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   ListObjectsV2Command,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 
 const app = express();
@@ -144,6 +145,28 @@ app.get("/api/listar", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Erro ao listar arquivos:", error);
     res.status(500).json({ erro: "Erro ao listar do S3" });
+  }
+});
+
+app.delete("/api/excluir", async (req: Request, res: Response) => {
+  try {
+    const chaveArquivo = req.query.chave as string;
+
+    if (!chaveArquivo) {
+      return res.status(400).json({ erro: "Chave do arquivo é obrigatória" });
+    }
+
+    const command = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: chaveArquivo,
+    });
+
+    await s3Client.send(command);
+
+    res.json({ sucesso: true, mensagem: "Arquivo excluído com sucesso" });
+  } catch (error) {
+    console.error("Erro ao excluir arquivo:", error);
+    res.status(500).json({ erro: "Erro interno ao tentar excluir do S3" });
   }
 });
 
