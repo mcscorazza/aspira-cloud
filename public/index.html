@@ -10,16 +10,18 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
   </head>
-  <body class="bg-gray-50 text-gray-800 font-sans p-8">
+  <body class="bg-gray-50 text-gray-800 font-sans p-2 md:p-8">
     <div
       class="max-w-5xl mx-auto bg-white rounded-xl shadow-md overflow-hidden"
     >
-      <div class="bg-blue-600 p-6 text-white flex justify-between items-center">
-        <h1 class="text-2xl font-bold">
+      <div
+        class="bg-blue-600 p-4 md:p-6 text-white flex flex-col md:flex-row justify-between items-center gap-4"
+      >
+        <h1 class="text-xl md:text-2xl font-bold">
           <i class="fas fa-cloud mr-2"></i> Aspira Cloud
         </h1>
 
-        <div class="flex gap-2">
+        <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <input
             type="file"
             id="arquivoInput"
@@ -28,7 +30,7 @@
           />
           <label
             for="arquivoInput"
-            class="bg-white text-blue-600 px-4 py-2 rounded font-semibold cursor-pointer hover:bg-gray-100 transition"
+            class="bg-white text-blue-600 px-4 py-2 rounded font-semibold cursor-pointer hover:bg-gray-100 transition text-center w-full md:w-auto shadow"
           >
             <i class="fas fa-upload mr-1"></i> Subir Arquivo
           </label>
@@ -52,14 +54,14 @@
       </div>
 
       <div
-        class="bg-gray-100 p-3 border-b text-sm text-gray-600"
+        class="bg-gray-100 p-3 border-b text-sm text-gray-600 overflow-x-auto whitespace-nowrap"
         id="breadcrumb"
       >
         <i class="fas fa-home"></i> / root /
       </div>
 
-      <div class="p-0">
-        <table class="w-full text-left border-collapse">
+      <div class="p-0 overflow-x-auto w-full">
+        <table class="w-full text-left border-collapse min-w-[600px]">
           <thead>
             <tr class="bg-gray-50 border-b text-gray-500 text-sm">
               <th class="p-4 font-medium">Nome</th>
