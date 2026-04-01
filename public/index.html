@@ -93,7 +93,6 @@
         );
       }
 
-      // Função principal: Carregar arquivos da API
       async function carregarArquivos(prefixo = "root/") {
         prefixoAtual = prefixo;
         document.getElementById("breadcrumb").innerHTML =
@@ -181,7 +180,14 @@
         const arquivo = input.files[0];
         if (!arquivo) return;
 
-        const caminhoCompleto = prefixoAtual + arquivo.name;
+        let pastaDestino = prefixoAtual;
+
+        if (pastaDestino === "root/") {
+          const dataHoje = new Date().toISOString().split("T")[0];
+          pastaDestino = `root/${dataHoje}/`;
+        }
+
+        const caminhoCompleto = pastaDestino + arquivo.name;
         const nomeParaUpload = caminhoCompleto.replace("root/", "");
 
         const btnLabel = input.nextElementSibling;
