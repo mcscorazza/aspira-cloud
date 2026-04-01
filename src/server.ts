@@ -12,6 +12,12 @@ import {
 } from "@aws-sdk/client-s3";
 
 const app = express();
+
+app.use((req, res, next) => {
+  res.setHeader("Connection", "close");
+  next();
+});
+
 app.use(cors());
 app.use(express.static(path.join(__dirname, "../public")));
 
@@ -37,41 +43,51 @@ const verificarTokenESP = (req: Request, res: Response, next: NextFunction) => {
 app.post(
   "/api/upload-esp",
   verificarTokenESP,
-  uploadMulter.single("filename"),
+  (req: Request, res: Response, next: NextFunction) => {
+    uploadMulter.single("filename")(req, res, (err) => {
+      if (err) {
+        if (
+          err.code === "ECONNRESET" ||
+          err.message === "Request aborted" ||
+          err.message === "Unexpected end of form"
+        ) {
+          console.log(
+            "⚠️ Conexão encerrada pelo ESP32 antes do fechamento total, mas processando...",
+          );
+          return next();
+        }
+        return res.status(500).json({ erro: "Erro no upload do arquivo" });
+      }
+      next();
+    });
+  },
   async (req: Request, res: Response): Promise<any> => {
     try {
-      const file = req.file;
+      const arquivo = req.file;
+      if (!arquivo)
+        return res.status(400).json({ erro: "Arquivo não encontrado" });
 
-      if (!file) {
-        return res.status(400).json({ erro: "Nenhum arquivo recebido" });
-      }
+      const dataHoje = new Date().toISOString().split("T")[0];
+      const nomeArquivo =
+        arquivo.originalname || `datalogger_${Date.now()}.zip`;
+      const s3Key = `root/${dataHoje}/${nomeArquivo}`;
 
-      const dateNow = new Date().toISOString().split("T")[0];
-
-      const fileName = file.originalname || `datalogger_${Date.now()}.zip`;
-      const s3Key = `root/${dateNow}/${fileName}`;
-
-      const command = new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: s3Key,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-      });
-
-      await s3Client.send(command);
-
-      console.log(
-        `Sucesso: Arquivo ${fileName} recebido do ESP32 e salvo no S3!`,
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: s3Key,
+          Body: arquivo.buffer,
+          ContentType: arquivo.mimetype,
+        }),
       );
 
-      res.status(200).json({
-        sucesso: true,
-        mensagem: "Arquivo salvo com sucesso",
-        caminho: s3Key,
-      });
+      console.log(`✅ Sucesso: ${nomeArquivo} salvo no S3!`);
+
+      res.setHeader("Connection", "close");
+      return res.status(200).json({ sucesso: true });
     } catch (error) {
-      console.error("Erro ao processar upload do ESP32:", error);
-      res.status(500).json({ erro: "Erro interno ao salvar no S3" });
+      console.error("❌ Erro S3:", error);
+      return res.status(500).json({ erro: "Erro interno" });
     }
   },
 );
