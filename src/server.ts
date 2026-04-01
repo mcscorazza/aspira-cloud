@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import multer from "multer";
 import path from "path";
+import archiver from "archiver";
+import { Readable } from "stream";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   S3Client,
@@ -168,6 +170,45 @@ app.get("/api/listar", async (req: Request, res: Response) => {
     res.status(500).json({ erro: "Erro ao listar do S3" });
   }
 });
+
+app.post(
+  "/api/baixar-zip",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { chaves } = req.body;
+      if (!chaves || !Array.isArray(chaves) || chaves.length === 0) {
+        return res.status(400).send("Nenhum arquivo selecionado");
+      }
+      res.attachment(`AC_Files_${Date.now()}.zip`);
+
+      const archive = archiver("zip", { zlib: { level: 5 } });
+
+      archive.on("error", (err) => {
+        throw err;
+      });
+      archive.pipe(res);
+
+      for (const chave of chaves) {
+        const command = new GetObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: chave,
+        });
+        const response = await s3Client.send(command);
+
+        const stream = response.Body as Readable;
+
+        const nomeArquivo = chave.split("/").pop() || chave;
+
+        archive.append(stream, { name: nomeArquivo });
+      }
+
+      await archive.finalize();
+    } catch (error) {
+      console.error("Erro ao gerar ZIP:", error);
+      if (!res.headersSent) res.status(500).send("Erro ao gerar ZIP");
+    }
+  },
+);
 
 app.delete("/api/excluir", async (req: Request, res: Response) => {
   try {
