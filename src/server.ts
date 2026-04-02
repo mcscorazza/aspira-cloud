@@ -24,6 +24,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.raw({ type: 'application/octet-stream', limit: '100mb' }));
 
 const storage = multer.memoryStorage();
 const uploadMulter = multer({
@@ -43,6 +44,40 @@ const verificarTokenESP = (req: Request, res: Response, next: NextFunction) => {
   }
   next();
 };
+
+// URL Esperada: /api/upload-esp/VAGAO_001/log_setembro.zip
+app.put('/api/upload-esp/:dlg_id/:filename', verificarTokenESP, async (req: Request, res: Response): Promise<any> => {
+    try {
+        const { dlg_id, filename } = req.params;
+        const arquivoBuffer = req.body;
+
+        if (!arquivoBuffer || arquivoBuffer.length === 0) {
+            return res.status(400).json({ erro: 'Corpo da requisição vazio' });
+        }
+
+        const dataHoje = new Date().toISOString().split('T')[0];
+        
+        const s3Key = `root/${dataHoje}/${dlg_id}/${filename}`;
+
+        const command = new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: s3Key,
+            Body: arquivoBuffer,
+            ContentType: 'application/octet-stream',
+        });
+
+        await s3Client.send(command);
+
+        console.log(`🚀 [PUT] ${filename} recebido de ${dlg_id} (${arquivoBuffer.length} bytes)`);
+
+        res.setHeader('Connection', 'close');
+        return res.status(201).json({ s: true }); 
+
+    } catch (error) {
+        console.error("❌ Erro no PUT S3:", error);
+        return res.status(500).json({ e: 'erro_interno' });
+    }
+});
 
 app.post(
   "/api/upload-esp",
