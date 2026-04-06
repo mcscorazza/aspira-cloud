@@ -280,6 +280,21 @@ app.get("/{*splat}", (req, res) => {
 
 const PORT = process.env.PORT || 8000;
 
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    if (err.type === 'request.aborted') {
+        console.warn(`⚠️ [Aviso] Upload interrompido pelo ESP32 (Possível queda de sinal): ${req.originalUrl}`);
+        return res.status(400).json({ e: 'conexao_abortada' });
+    }
+
+    if (err.type === 'entity.too.large') {
+        console.warn(`⚠️ [Aviso] Arquivo excedeu 10MB: ${req.originalUrl}`);
+        return res.status(413).json({ e: 'arquivo_muito_grande' });
+    }
+
+    console.error(`❌ Erro interno na rota ${req.originalUrl}:`, err.message);
+    res.status(500).json({ erro: 'Erro interno no servidor' });
+});
+
 const server = app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
