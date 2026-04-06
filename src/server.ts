@@ -24,7 +24,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "../public")));
-app.use(express.raw({ type: 'application/octet-stream', limit: '100mb' }));
+app.use(express.raw({ type: "application/octet-stream", limit: "100mb" }));
 
 const storage = multer.memoryStorage();
 const uploadMulter = multer({
@@ -45,91 +45,96 @@ const verificarTokenESP = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-// URL Esperada: /api/upload-esp/VAGAO_001/log_setembro.zip
-app.put('/api/upload-esp/:dlg_id/:filename', verificarTokenESP, async (req: Request, res: Response): Promise<any> => {
-    try {
-        const { dlg_id, filename } = req.params;
-        const arquivoBuffer = req.body;
-
-        if (!arquivoBuffer || arquivoBuffer.length === 0) {
-            return res.status(400).json({ erro: 'Corpo da requisição vazio' });
-        }
-
-        const dataHoje = new Date().toISOString().split('T')[0];
-        
-        const s3Key = `root/${dataHoje}/${dlg_id}/${filename}`;
-
-        const command = new PutObjectCommand({
-            Bucket: BUCKET_NAME,
-            Key: s3Key,
-            Body: arquivoBuffer,
-            ContentType: 'application/octet-stream',
-        });
-
-        await s3Client.send(command);
-
-        console.log(`🚀 [PUT] ${filename} recebido de ${dlg_id} (${arquivoBuffer.length} bytes)`);
-
-        res.setHeader('Connection', 'close');
-        return res.status(201).json({ s: true }); 
-
-    } catch (error) {
-        console.error("❌ Erro no PUT S3:", error);
-        return res.status(500).json({ e: 'erro_interno' });
-    }
-});
-
-app.post(
-  "/api/upload-esp",
+app.put(
+  "/api/upload-esp/:dlg_id/:filename",
+  express.raw({ type: "application/octet-stream", limit: "10mb" }),
   verificarTokenESP,
-  (req: Request, res: Response, next: NextFunction) => {
-    uploadMulter.single("filename")(req, res, (err) => {
-      if (err) {
-        if (
-          err.code === "ECONNRESET" ||
-          err.message === "Request aborted" ||
-          err.message === "Unexpected end of form"
-        ) {
-          console.log(
-            "⚠️ Conexão encerrada pelo ESP32 antes do fechamento total, mas processando...",
-          );
-          return next();
-        }
-        return res.status(500).json({ erro: "Erro no upload do arquivo" });
-      }
-      next();
-    });
-  },
   async (req: Request, res: Response): Promise<any> => {
+    req.setTimeout(300000);
     try {
-      const arquivo = req.file;
-      if (!arquivo)
-        return res.status(400).json({ erro: "Arquivo não encontrado" });
+      const { dlg_id, filename } = req.params;
+      const arquivoBuffer = req.body;
+
+      if (!arquivoBuffer || arquivoBuffer.length === 0) {
+        return res.status(400).json({ erro: "Corpo da requisição vazio" });
+      }
 
       const dataHoje = new Date().toISOString().split("T")[0];
-      const nomeArquivo =
-        arquivo.originalname || `datalogger_${Date.now()}.zip`;
-      const s3Key = `root/${dataHoje}/${nomeArquivo}`;
+      const s3Key = `root/${dataHoje}/${dlg_id}/${filename}`;
 
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: BUCKET_NAME,
-          Key: s3Key,
-          Body: arquivo.buffer,
-          ContentType: arquivo.mimetype,
-        }),
+      const command = new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: s3Key,
+        Body: arquivoBuffer,
+        ContentType: "application/octet-stream",
+      });
+
+      await s3Client.send(command);
+
+      console.log(
+        `🚀 [PUT] ${filename} recebido de ${dlg_id} (${arquivoBuffer.length} bytes)`,
       );
 
-      console.log(`✅ Sucesso: ${nomeArquivo} salvo no S3!`);
-
       res.setHeader("Connection", "close");
-      return res.status(200).json({ sucesso: true });
+      return res.status(201).json({ s: true });
     } catch (error) {
-      console.error("❌ Erro S3:", error);
-      return res.status(500).json({ erro: "Erro interno" });
+      console.error("❌ Erro no PUT S3:", error);
+      return res.status(500).json({ e: "erro_interno" });
     }
   },
 );
+
+// app.post(
+//   "/api/upload-esp",
+//   verificarTokenESP,
+//   (req: Request, res: Response, next: NextFunction) => {
+//     uploadMulter.single("filename")(req, res, (err) => {
+//       if (err) {
+//         if (
+//           err.code === "ECONNRESET" ||
+//           err.message === "Request aborted" ||
+//           err.message === "Unexpected end of form"
+//         ) {
+//           console.log(
+//             "⚠️ Conexão encerrada pelo ESP32 antes do fechamento total, mas processando...",
+//           );
+//           return next();
+//         }
+//         return res.status(500).json({ erro: "Erro no upload do arquivo" });
+//       }
+//       next();
+//     });
+//   },
+//   async (req: Request, res: Response): Promise<any> => {
+//     try {
+//       const arquivo = req.file;
+//       if (!arquivo)
+//         return res.status(400).json({ erro: "Arquivo não encontrado" });
+
+//       const dataHoje = new Date().toISOString().split("T")[0];
+//       const nomeArquivo =
+//         arquivo.originalname || `datalogger_${Date.now()}.zip`;
+//       const s3Key = `root/${dataHoje}/${nomeArquivo}`;
+
+//       await s3Client.send(
+//         new PutObjectCommand({
+//           Bucket: BUCKET_NAME,
+//           Key: s3Key,
+//           Body: arquivo.buffer,
+//           ContentType: arquivo.mimetype,
+//         }),
+//       );
+
+//       console.log(`✅ Sucesso: ${nomeArquivo} salvo no S3!`);
+
+//       res.setHeader("Connection", "close");
+//       return res.status(200).json({ sucesso: true });
+//     } catch (error) {
+//       console.error("❌ Erro S3:", error);
+//       return res.status(500).json({ erro: "Erro interno" });
+//     }
+//   },
+// );
 
 app.get("/api/url-upload", async (req: Request, res: Response) => {
   try {
@@ -281,3 +286,4 @@ const server = app.listen(PORT, () => {
 
 server.requestTimeout = 300000;
 server.headersTimeout = 305000;
+server.keepAliveTimeout = 300000;
