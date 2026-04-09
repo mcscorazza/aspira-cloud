@@ -2,10 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import multer from "multer";
 import path from "path";
-import {
-  S3Client,
-  PutObjectCommand,
-} from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const app = express();
 
@@ -40,21 +37,21 @@ const verificarTokenESP = (req: Request, res: Response, next: NextFunction) => {
 };
 
 app.put(
-  "/api/upload-esp/:dlg_id/:filename",
+  "/api/upload-esp/:dlg_id/:pasta_data/:filename",
   express.raw({ type: "application/octet-stream", limit: "10mb" }),
   verificarTokenESP,
   async (req: Request, res: Response): Promise<any> => {
     req.setTimeout(300000);
+
     try {
-      const { dlg_id, filename } = req.params;
+      const { dlg_id, pasta_data, filename } = req.params;
       const arquivoBuffer = req.body;
 
       if (!arquivoBuffer || arquivoBuffer.length === 0) {
         return res.status(400).json({ erro: "Corpo da requisição vazio" });
       }
 
-      const dataHoje = new Date().toISOString().split("T")[0];
-      const s3Key = `root/${dataHoje}/${dlg_id}/${filename}`;
+      const s3Key = `root/${dlg_id}/${pasta_data}/${filename}`;
 
       const command = new PutObjectCommand({
         Bucket: BUCKET_NAME,
@@ -66,7 +63,7 @@ app.put(
       await s3Client.send(command);
 
       console.log(
-        `🚀 [PUT] ${filename} recebido de ${dlg_id} (${arquivoBuffer.length} bytes)`,
+        `🚀 [PUT] ${filename} salvo em ${dlg_id}/${pasta_data}/ (${arquivoBuffer.length} bytes)`,
       );
 
       res.setHeader("Connection", "close");
@@ -81,18 +78,20 @@ app.put(
 const PORT = process.env.PORT || 8000;
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    if (err.type === 'request.aborted') {
-        console.warn(`⚠️ [Aviso] Upload interrompido pelo ESP32 (Possível queda de sinal): ${req.originalUrl}`);
-        return res.status(400).json({ e: 'conexao_abortada' });
-    }
+  if (err.type === "request.aborted") {
+    console.warn(
+      `⚠️ [Aviso] Upload interrompido pelo ESP32 (Possível queda de sinal): ${req.originalUrl}`,
+    );
+    return res.status(400).json({ e: "conexao_abortada" });
+  }
 
-    if (err.type === 'entity.too.large') {
-        console.warn(`⚠️ [Aviso] Arquivo excedeu 10MB: ${req.originalUrl}`);
-        return res.status(413).json({ e: 'arquivo_muito_grande' });
-    }
+  if (err.type === "entity.too.large") {
+    console.warn(`⚠️ [Aviso] Arquivo excedeu 10MB: ${req.originalUrl}`);
+    return res.status(413).json({ e: "arquivo_muito_grande" });
+  }
 
-    console.error(`❌ Erro interno na rota ${req.originalUrl}:`, err.message);
-    res.status(500).json({ erro: 'Erro interno no servidor' });
+  console.error(`❌ Erro interno na rota ${req.originalUrl}:`, err.message);
+  res.status(500).json({ erro: "Erro interno no servidor" });
 });
 
 const server = app.listen(PORT, () => {
